@@ -99,7 +99,7 @@ def validate_link_content_with_gpt4(url):
             return False
 
         if pdf_content:
-            pdf_content = pdf_content[:15000]  # truncate
+            pdf_content = pdf_content[:15000]  
 
             prompt = f"Please analyze the following PDF content and check if it contains relevant logistic and shipment surcharge data like prices, dates, or surcharges (fuel, toll, etc.):\n\n{pdf_content}\n\nDoes this pdf contain surcharge-related information (such as prices, dates, or fees)? Respond with simple 'yes' or 'no'"
             response = client.chat.completions.create(
@@ -397,22 +397,43 @@ def main():
             raw_content = fetch_website_content(input_url)
             display_link = input_url
 
+            if raw_content:
+                parsed_data = parse_content(raw_content, display_link)
+                display_parsed_data(parsed_data)
+            else:
+                print(f"Failed to fetch or parse content from: {input_url}")
+            pdf_links = fetch_pdf_links_from_page(input_url)
+            if pdf_links:
+                print(f"Found {len(pdf_links)} PDF links on the page. Processing PDFs...")
+                for pdf_link in pdf_links:
+                    pdf_content = extract_pdf_link_content(pdf_link)
+                    if pdf_content:
+                        parsed_pdf_data = parse_content(pdf_content, pdf_link)
+                        display_parsed_data(parsed_pdf_data)
+                    else:
+                        print(f"Failed to extract content from PDF link: {pdf_link}")
+            else:
+                print("No PDF links found on the page.")
+
+
         elif choice == '2':
             is_url = input("Is the PDF link a URL? (yes/no): ").strip().lower()
             if is_url == 'yes':
                 pdf_path = input("Enter the PDF link: ")
                 raw_content = extract_pdf_link_content(pdf_path)
                 display_link = pdf_path
+                parsed_data = parse_content(raw_content,display_link)
+
             else:
                 pdf_path = input("Enter the path to the PDF file: ")
                 raw_content = extract_pdf_content(pdf_path)
                 display_link = pdf_path
+                parsed_data = parse_content(raw_content,display_link)
+
 
         else:
             print("Invalid choice. Please enter 1 or 2.")
             return None    
-        print('pugyo ya')
-        parsed_data = parse_content(raw_content,display_link)
         # print('HERE IS THE PARSED DATA ',parsed_data)
 
         display_parsed_data(parsed_data)
@@ -428,14 +449,10 @@ def main():
             3. Include technical terms that appear on surcharge pages (index, adjustment factor, calculator, percentage)
             4. Exclude general news, articles, or third-party aggregators
             5. Return a single search string without quotes or explanations
-
-            Example effective queries:
-            - "site:dhl.com freight fuel surcharge index table rates"
-            - "site:maersk.com bunker adjustment factor BAF current"
             """
         search_query = generate_search_query(user_query)
         print(f"Generated search query: {search_query}")
-        print("++++++++++++++++++++++++++++++++++++++===============")
+
 
         links = fetch_links_from_search_api(search_query)
         print(f"Fetched {len(links)} links.")
